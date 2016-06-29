@@ -1,23 +1,19 @@
 'use strict';
 
-let Wit = null;
-try {
-  // if running from repo
-  Wit = require('../').Wit;
-} catch (e) {
-  Wit = require('node-wit').Wit;
-}
+// Joke example
+// See https://wit.ai/patapizza/example-joke
 
-const accessToken = (() => {
+// When not cloning the `node-wit` repo, replace the `require` like so:
+// const Wit = require('node-wit').Wit;
+const Wit = require('../').Wit;
+
+const token = (() => {
   if (process.argv.length !== 3) {
-    console.log('usage: node examples/joke.js <wit-access-token>');
+    console.log('usage: node examples/joke.js <wit-token>');
     process.exit(1);
   }
   return process.argv[2];
 })();
-
-// Joke example
-// See https://wit.ai/patapizza/example-joke
 
 const allJokes = {
   chuck: [
@@ -46,42 +42,33 @@ const firstEntityValue = (entities, entity) => {
 };
 
 const actions = {
-  send(request, response) {
-    console.log('sending...', JSON.stringify(response));
-    return Promise.resolve();
+  say(sessionId, context, message, cb) {
+    console.log(message);
+    cb();
   },
-  merge({entities, context, message, sessionId}) {
-    return new Promise(function(resolve, reject) {
-      delete context.joke;
-      const category = firstEntityValue(entities, 'category');
-      if (category) {
-        context.cat = category;
-      }
-      const sentiment = firstEntityValue(entities, 'sentiment');
-      if (sentiment) {
-        context.ack = sentiment === 'positive' ? 'Glad you liked it.' : 'Hmm.';
-      } else {
-        delete context.ack;
-      }
-      return resolve(context);
-    });
+  merge(sessionId, context, entities, message, cb) {
+    delete context.joke;
+    const category = firstEntityValue(entities, 'category');
+    if (category) {
+      context.cat = category;
+    }
+    const sentiment = firstEntityValue(entities, 'sentiment');
+    if (sentiment) {
+      context.ack = sentiment === 'positive' ? 'Glad you liked it.' : 'Hmm.';
+    } else {
+      delete context.ack;
+    }
+    cb(context);
   },
-  ['select-joke']({entities, context}) {
-    return new Promise(function(resolve, reject) {
-      // const category = firstEntityValue(entities, 'category') || 'default';
-      // const sentiment = firstEntityValue(entities, 'sentiment');
-      // if (sentiment) {
-      //   context.ack = sentiment === 'positive' ? 'Glad you liked it.' : 'Hmm.';
-      // } else {
-      //   delete context.ack;
-      // }
-
-      const jokes = allJokes[context.cat || 'default'];
-      context.joke = jokes[Math.floor(Math.random() * jokes.length)];
-      return resolve(context);
-    });
+  error(sessionId, context, error) {
+    console.log(error.message);
+  },
+  ['select-joke'](sessionId, context, cb) {
+    const jokes = allJokes[context.cat || 'default'];
+    context.joke = jokes[Math.floor(Math.random() * jokes.length)];
+    cb(context);
   },
 };
 
-const client = new Wit({accessToken, actions});
+const client = new Wit(token, actions);
 client.interactive();
