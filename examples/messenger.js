@@ -43,7 +43,7 @@ const FB_VERIFY_TOKEN = process.env.FB_VERIFY_TOKEN;
 // See the Send API reference
 // https://developers.facebook.com/docs/messenger-platform/send-api-reference
 const fbReq = request.defaults({
-  uri: 'https://graph.facebook.com/me/messages',
+  uri: 'https://graph.facebook.com/v2.6/me/messages',
   method: 'POST',
   json: true,
   qs: { access_token: FB_PAGE_TOKEN },
@@ -112,6 +112,8 @@ const findOrCreateSession = (fbid) => {
 // Our bot actions
 const actions = {
   say(sessionId, context, message, cb) {
+    console.log('Context');
+    console.log(context);
     // Our bot has something to say!
     // Let's retrieve the Facebook user whose session belongs to
     const recipientId = sessions[sessionId].fbid;
@@ -126,6 +128,8 @@ const actions = {
             ':',
             err
           );
+          console.log(data);
+          console.log(message);
         }
 
         // Let's give the wheel back to our bot
@@ -143,6 +147,13 @@ const actions = {
   error(sessionId, context, error) {
     console.log(error.message);
   },
+  lookupWifi(sessionId, context, cb) {
+    console.log("LookupWifi");
+    console.log(context);
+    context.wifi_name = "Airbnb_Guest";
+    context.wifi_pass = "BeAHost!";
+    cb(context);
+  },
   // You should implement your custom actions here
   // See https://wit.ai/docs/quickstart
 };
@@ -158,6 +169,7 @@ app.use(bodyParser.json());
 
 // Webhook setup
 app.get('/fb', (req, res) => {
+  console.log('got a get message');
   if (!FB_VERIFY_TOKEN) {
     throw new Error('missing FB_VERIFY_TOKEN');
   }
@@ -173,6 +185,7 @@ app.get('/fb', (req, res) => {
 app.post('/fb', (req, res) => {
   // Parsing the Messenger API response
   const messaging = getFirstMessagingEntry(req.body);
+  console.log(messaging);
   if (messaging && messaging.message && messaging.recipient.id === FB_PAGE_ID) {
     // Yay! We got a new message!
 
